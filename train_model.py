@@ -3,17 +3,19 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers, regularizers
+from tensorflow import keras
+layers = keras.layers
+regularizers = keras.regularizers
 from supabase_client import get_supabase_client
 
 def fetch_historical_data():
     """
-    Ejemplo: lee de la tabla 'Estimacion_Esfuerzo_Construccion'
+    Ejemplo: lee de la tabla 'estimacion_esfuerzo_construccion'
     en Supabase para obtener datos históricos (cantidad_objeto_estimado, esfuerzo_real, etc.).
     Ajusta si necesitas JOINS u otras tablas.
     """
     supabase = get_supabase_client()
-    response = supabase.table("Estimacion_Esfuerzo_Construccion").select("*").execute()
+    response = supabase.table("estimacion_esfuerzo_construccion").select("*").execute()
     data = response.data
     df = pd.DataFrame(data)
     return df
@@ -53,7 +55,7 @@ def create_model(input_dim):
         layers.Dense(1, activation='linear')  # salida = esfuerzo estimado
     ])
 
-    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae'])
     return model
 
 def train_and_update_factors():
@@ -74,6 +76,6 @@ def train_and_update_factors():
     correction_factor = 1.0 + (final_mae / 100.0)
 
     # Actualiza Parametro_Estimacion como ejemplo
-    supabase.table("Parametro_Estimacion").update({"factor_ia": correction_factor}).execute()
+    supabase.table("parametro_estimacion").update({"factor_ia": correction_factor}).eq("parametro_estimacionid", 1).execute()
 
     return True

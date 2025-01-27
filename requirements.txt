@@ -1,0 +1,7 @@
+fastapi==0.95.2
+uvicorn==0.22.0
+tensorflow==2.12.0
+pandas==2.0.3
+numpy==1.24.3
+supabase==0.8.2
+python-dotenv==1.0.0

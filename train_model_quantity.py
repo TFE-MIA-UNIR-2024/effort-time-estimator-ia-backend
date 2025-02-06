@@ -29,6 +29,10 @@ def fetch_data():
     return df, tipo_elementos
 
 def preprocess_data(df, num_tipos_elemento):
+
+    # Eliminar filas con valores NaN en la columna 'cantidad_real'
+    df = df.dropna(subset=['cantidad_real'])
+
     df['tipo_elemento_afectado_id'] = pd.to_numeric(df['tipo_elemento_afectado_id'], errors='coerce').fillna(0).astype(int)
 
     # One-Hot Encoding para tipo_elemento_afectado_id
@@ -73,6 +77,10 @@ def train_and_save_model():
     if df.empty:
         print("No se recibieron datos para entrenar el modelo. Saliendo...")
         return
+
+    # Imprimir el DataFrame original al inicio
+    print("DataFrame original (antes del preprocesamiento):")
+    print(tabulate(df, headers='keys', tablefmt='fancy_grid', numalign='center', stralign='center')) # Usar fancy_grid para una tabla bonita
 
     # Preprocesar y dividir los datos
     X_train, X_test, y_train, y_test, input_shape, scaler, train_columns = preprocess_data(df, num_tipos_elemento)
@@ -144,23 +152,32 @@ def main():
   # Entrenar y guardar el modelo
   df, tipo_elementos = train_and_save_model()
 
-  # Ejemplo de uso del modelo cargado para hacer una predicción:
-  input_data = {'cantidad_estimada': 2, 'tipo_elemento_afectado_id': 3}
+  # Definir algunos datos de entrada para la predicción
+  input_data_list = [
+      {'cantidad_estimada': 2, 'tipo_elemento_afectado_id': 3},
+      {'cantidad_estimada': 1, 'tipo_elemento_afectado_id': 7},
+      {'cantidad_estimada': 3, 'tipo_elemento_afectado_id': 1},
+      {'cantidad_estimada': 5, 'tipo_elemento_afectado_id': 9},
+      {'cantidad_estimada': 2, 'tipo_elemento_afectado_id': 12}
+  ]
 
-  prediction, input_df = load_model_and_predict(df, input_data)
+  # Crear una lista para almacenar los resultados de las predicciones
+  results = []
 
-  if prediction is not None:
-      # Crear DataFrame para la entrada y la predicción
-      output_data = {'cantidad_estimada': [input_data['cantidad_estimada']],
-                     'tipo_elemento_afectado_id': [input_data['tipo_elemento_afectado_id']],
-                     'Predicción': [prediction]}
+  # Realizar predicciones para cada conjunto de datos de entrada
+  for input_data in input_data_list:
+      prediction, input_df = load_model_and_predict(df, input_data)
+      if prediction is not None:
+          results.append([input_data['cantidad_estimada'], input_data['tipo_elemento_afectado_id'], prediction])
+      else:
+          print(f"No se pudo realizar la predicción para la entrada: {input_data}")
 
-      output_df = pd.DataFrame(output_data)
-      print("Predicción:")
-      print(tabulate(output_df, headers='keys', tablefmt='fancy_grid', numalign='center', stralign='center'))
+  # Crear un DataFrame a partir de los resultados
+  results_df = pd.DataFrame(results, columns=['cantidad_estimada', 'tipo_elemento_afectado_id', 'Predicción'])
 
-  else:
-    print("No se pudo realizar la predicción.")
+  # Imprimir el DataFrame en formato de tabla en la consola
+  print("Predicciones:")
+  print(tabulate(results_df, headers='keys', tablefmt='fancy_grid', numalign='center', stralign='center'))
 
 if __name__ == '__main__':
     main()

@@ -1,171 +1,282 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import layers, regularizers
+from tensorflow.keras import layers, regularizers, backend as K
 from supabase_client import get_supabase_client
+from tabulate import tabulate
 
-def fetch_historical_data():
-    """
-    Lee la tabla histórica con datos por requerimiento desde Supabase.
-    """
+# Función de pérdida basada en el Error Relativo Absoluto
+def relative_error_loss(y_true, y_pred):
+    return K.mean(K.abs((y_true - y_pred) / K.clip(K.abs(y_true), K.epsilon(), None)))
+
+# ------------------------------------------------------------------------------
+# Funciones para el modelo de Parametro de Estimación
+# ------------------------------------------------------------------------------
+
+def fetch_historical_data_parametro():
     supabase = get_supabase_client()
-    
-    response = supabase.from_("estimacion_esfuerzo_construccion").select(
+    response = supabase.from_("punto_funcion").select(
         """
-            estimacion_esfuerzo_construccionid,
-            objeto_afectado,
-            cantidad_objeto_estimado,
-            cantidad_objeto_real,
-            esfuerzo_real,
-            fechacreacion,
-            punto_funcion(parametro_estimacionid, cantidad_real, parametro_estimacion(factor))
+            punto_funcionid,
+            jornada_real,
+            jornada_estimada,
+            parametro_estimacionid,
+            parametro_estimacion(factor, factor_ia)
         """
-    ).execute()
-    
+    ).filter("jornada_real", "not.is", "null").filter("jornada_estimada", "not.is", "null").execute()  # Condición
+
     data = response.data
+    processed_data = []
 
-    if data and isinstance(data, list) and len(data) > 0:
-        
-        # Procesar los datos para obtener el formato deseado
-        processed_data = []
+    if data:
         for row in data:
-          
-          processed_row = {
-              'estimacion_esfuerzo_construccionid': row.get('estimacion_esfuerzo_construccionid'),
-              'objeto_afectado': row.get('objeto_afectado'),
-              'cantidad_objeto_estimado': row.get('cantidad_objeto_estimado'),
-              'cantidad_objeto_real': row.get('cantidad_objeto_real'),
-              'esfuerzo_real': row.get('esfuerzo_real'),
-              'fechacreacion': row.get('fechacreacion'),
-          }
-          if row.get('punto_funcion') is not None:
-             processed_row['parametro_estimacionid'] = row['punto_funcion'].get('parametro_estimacionid')
-             processed_row['cantidad_real_punto_funcion'] = row['punto_funcion'].get('cantidad_real')
-             if row['punto_funcion'].get('parametro_estimacion') is not None:
-                processed_row['factor_inicial'] = row['punto_funcion']['parametro_estimacion'].get('factor')
-             else:
-                processed_row['factor_inicial'] = None
-          else:
-            processed_row['parametro_estimacionid'] = None
-            processed_row['cantidad_real_punto_funcion'] = None
-            processed_row['factor_inicial'] = None
+            parametro_estimacion_data = row.get('parametro_estimacion')
+
+            processed_row = {
+                'punto_funcionid': row.get('punto_funcionid'),  # Agregado punto_funcionid
+                'jornada_real': row.get('jornada_real'),
+                'jornada_estimada': row.get('jornada_estimada'),
+                'parametro_estimacionid': row.get('parametro_estimacionid'),
+                'factor_parametro': parametro_estimacion_data.get('factor') if parametro_estimacion_data else None,
+                'factor_ia_parametro': parametro_estimacion_data.get('factor_ia') if parametro_estimacion_data else None,
+            }
+            processed_data.append(processed_row)
+
+    df = pd.DataFrame(processed_data)
+    print("\nDataFrame Parametro:")
+    print(tabulate(df, headers='keys', tablefmt='psql'))
+
+    # Verifica los tipos de datos
+    print("\nTipos de datos del DataFrame Parametro:")
+    print(df.dtypes)
+
+    # Convierte las columnas a numérico y maneja los errores
+    df["factor_parametro"] = pd.to_numeric(df["factor_parametro"], errors='coerce')
+    df["factor_ia_parametro"] = pd.to_numeric(df["factor_ia_parametro"], errors='coerce')
+
+    # Imputa los valores faltantes (NaN) con 0
+    df["factor_parametro"] = df["factor_parametro"].fillna(0)
+    df["factor_ia_parametro"] = df["factor_ia_parametro"].fillna(0)
+
+    return df
 
 
-          processed_data.append(processed_row)
-        
-        df = pd.DataFrame(processed_data)
-        print(f"Datos cargados: {df.shape[0]} filas, {df.shape[1]} columnas.")
-        print("Primeras filas del dataset:")
-        print(df.head())
-        # Imprimir las columnas del DataFrame para depuración
-        print("Columnas del DataFrame:")
-        print(df.columns)
-        return df
-    else:
-        print("Error: No se recibieron datos de la base de datos")
-        return pd.DataFrame()
-
-def preprocess_data(df):
-    """
-    Preprocesa todos los datos para el entrenamiento.
-    """
-    # Crear X (features) y y (etiquetas)
-    X = df[["cantidad_objeto_estimado", "cantidad_objeto_real", "cantidad_real_punto_funcion"]].values
-    y = df["esfuerzo_real"].values
-
-    print(f"Datos para entrenamiento global: {X.shape[0]} filas.")
-    print(f"Primeras filas de X para entrenamiento global:")
-    print(X[:5])
-    print(f"Primeros valores de y para entrenamiento global:")
-    print(y[:5])
-
+def preprocess_data_parametro(df):
+    X = df[["jornada_real", "jornada_estimada", "factor_parametro", "factor_ia_parametro"]].values
+    y = df["jornada_real"].values
     return X, y
 
-def create_model():
-    """
-    Define la red neuronal para ajustar el factor_ia.
-    """
+
+def create_model_parametro():
     model = tf.keras.Sequential([
-        layers.Input(shape=(3,)),  # Entrada: 3 features
+        layers.Input(shape=(4,)),
         layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l2(1e-4)),
         layers.Dropout(0.2),
         layers.Dense(32, activation='relu', kernel_regularizer=regularizers.l2(1e-4)),
         layers.Dropout(0.2),
-        layers.Dense(1, activation='linear')  # Salida: factor_ia ajustado
+        layers.Dense(1, activation='linear')
     ])
-
-    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae'])
-    model.summary()  # Mostrar resumen del modelo
+    model.compile(optimizer='adam', loss=relative_error_loss, metrics=['mae'])
     return model
 
-def train_for_all_requirements():
-    """
-    Entrena el modelo con todos los requerimientos y actualiza los factores_ia en la base de datos.
-    """
-    # Obtener datos históricos
-    df = fetch_historical_data()
-
-    # Verificar que el DataFrame no esté vacío
+def train_and_adjust_factors_parametro():
+    df = fetch_historical_data_parametro()
     if df.empty:
-      print("No se recibieron datos para entrenar el modelo. Saliendo...")
-      return
-
-    # Preprocesar todos los datos
-    X, y = preprocess_data(df)
-
-    # Crear y entrenar el modelo
-    model = create_model()
-
-    try:
-        history = model.fit(X, y, epochs=10, batch_size=4, validation_split=0.2, verbose=1)
-    except Exception as e:
-        print(f"Error durante el entrenamiento global: {e}")
+        print("No hay datos para entrenar el modelo de Parametro.")
         return
 
-    # Predecir el esfuerzo con el modelo entrenado
+    print("Datos de entrada (Parametro):")
+    print(tabulate(df, headers='keys', tablefmt='psql'))
+
+    X, y = preprocess_data_parametro(df)
+    model = create_model_parametro()
+    model.fit(X, y, epochs=10, batch_size=4, validation_split=0.2, verbose=1)
+
     predictions = model.predict(X).flatten()
+    supabase = get_supabase_client()
 
-    # Manejo de NaN en predicciones
-    if np.isnan(predictions).any():
-        print(f"ADVERTENCIA: Predicciones contienen NaN. Saltando el cálculo del factor_ia.")
+    for param_id in df["parametro_estimacionid"].unique():
+        df_param = df[df["parametro_estimacionid"] == param_id]
+        indices = df_param.index
+        esfuerzo_estimado = predictions[indices]
+        esfuerzo_real = df_param["jornada_real"].values
+
+        # Verifica si hay NaN en esfuerzo_estimado o esfuerzo_real
+        if np.isnan(esfuerzo_estimado).any() or np.isnan(esfuerzo_real).any():
+            print(f"Advertencia: NaN encontrado en esfuerzo_estimado o esfuerzo_real para parametro_estimacionid {param_id}.  Omitiendo actualización.")
+            continue  # Salta a la siguiente iteración del bucle
+
+        mean_esfuerzo_real = np.mean(esfuerzo_real)
+
+        if mean_esfuerzo_real == 0:
+            factor_ia_new = 1
+        else:
+            factor_ia_new = np.mean(esfuerzo_estimado) / mean_esfuerzo_real
+
+        factor_ia_new = max(factor_ia_new, 0)
+
+        if factor_ia_new > 10:
+            factor_ia_new = 10
+
+        # Verifica si factor_ia_new es NaN después de los cálculos
+        if np.isnan(factor_ia_new):
+            print(f"Advertencia: factor_ia_new es NaN para parametro_estimacionid {param_id}.  Omitiendo actualización.")
+            continue #Salto a la siguiente iteración del ciclo
+
+        supabase.table("parametro_estimacion").update(
+            {"factor_ia": factor_ia_new}
+        ).eq("parametro_estimacionid", param_id).execute()
+
+        print(f"Factor_ia (Parametro) actualizado para parametro_estimacionid {param_id}: {factor_ia_new}")
+
+# ------------------------------------------------------------------------------
+# Funciones para el modelo de Elemento Afectado
+# ------------------------------------------------------------------------------
+
+def fetch_historical_data_elemento():
+    supabase = get_supabase_client()
+    response = supabase.from_("punto_funcion").select(
+        """
+            punto_funcionid,
+            jornada_real,
+            jornada_estimada,
+            tipo_elemento_afectado_id,
+            tipo_elemento_afectado(elemento_afectado(factor, factor_ia))
+        """
+    ).filter("jornada_real", "not.is", "null").filter("jornada_estimada", "not.is", "null").execute()  # Condición
+
+    data = response.data
+    processed_data = []
+
+    if data:
+        for row in data:
+            tipo_elemento_afectado_data = row.get('tipo_elemento_afectado')
+            if tipo_elemento_afectado_data is not None:
+                elemento_afectado_list = tipo_elemento_afectado_data.get('elemento_afectado')
+                if isinstance(elemento_afectado_list, list) and elemento_afectado_list:
+                    elemento_afectado_data = elemento_afectado_list[0]
+                else:
+                    elemento_afectado_data = None
+            else:
+                elemento_afectado_data = None
+
+            processed_row = {
+                'punto_funcionid': row.get('punto_funcionid'),  # Agregado punto_funcionid
+                'jornada_real': row.get('jornada_real'),
+                'jornada_estimada': row.get('jornada_estimada'),
+                'tipo_elemento_afectado_id': row.get('tipo_elemento_afectado_id'),
+                'factor_elemento': elemento_afectado_data.get('factor') if elemento_afectado_data else None,
+                'factor_ia_elemento': elemento_afectado_data.get('factor_ia') if elemento_afectado_data else None,
+            }
+            processed_data.append(processed_row)
+
+    df = pd.DataFrame(processed_data)
+    print("\nDataFrame Elemento:")
+    print(tabulate(df, headers='keys', tablefmt='psql'))
+
+    # Verifica los tipos de datos
+    print("\nTipos de datos del DataFrame Elemento:")
+    print(df.dtypes)
+
+    # Convierte las columnas a numérico y maneja los errores
+    df["factor_elemento"] = pd.to_numeric(df["factor_elemento"], errors='coerce')
+    df["factor_ia_elemento"] = pd.to_numeric(df["factor_ia_elemento"], errors='coerce')
+
+    # Imputa los valores faltantes (NaN) con 0
+    df["factor_elemento"] = df["factor_elemento"].fillna(0)
+    df["factor_ia_elemento"] = df["factor_ia_elemento"].fillna(0)
+
+    return df
+
+
+def preprocess_data_elemento(df):
+    X = df[["jornada_real", "jornada_estimada", "factor_elemento", "factor_ia_elemento"]].values
+    y = df["jornada_real"].values
+    return X, y
+
+
+def create_model_elemento():
+    model = tf.keras.Sequential([
+        layers.Input(shape=(4,)),
+        layers.Dense(64, activation='relu', kernel_regularizer=regularizers.l2(1e-4)),
+        layers.Dropout(0.2),
+        layers.Dense(32, activation='relu', kernel_regularizer=regularizers.l2(1e-4)),
+        layers.Dropout(0.2),
+        layers.Dense(1, activation='linear')
+    ])
+    model.compile(optimizer='adam', loss=relative_error_loss, metrics=['mae'])
+    return model
+
+def train_and_adjust_factors_elemento():
+    df = fetch_historical_data_elemento()
+    if df.empty:
+        print("No hay datos para entrenar el modelo de Elemento.")
         return
 
-    # Estructura para almacenar los nuevos factores
-    factor_ia_updates = []
+    print("Datos de entrada (Elemento):")
+    print(tabulate(df, headers='keys', tablefmt='psql'))
 
-    # Obtener todos los parametro_estimacionid únicos
-    unique_param_ids = df["parametro_estimacionid"].unique()
-    print(f"Encontrados {len(unique_param_ids)} parametro_estimacionid únicos.")
-    
-    # Calcular y almacenar el nuevo factor_ia para cada requerimiento
-    for param_id in unique_param_ids:
-        df_req = df[df["parametro_estimacionid"] == param_id]
-        X_req = df_req[["cantidad_objeto_estimado", "cantidad_objeto_real", "cantidad_real_punto_funcion"]].values
+    X, y = preprocess_data_elemento(df)
+    model = create_model_elemento()
+    model.fit(X, y, epochs=10, batch_size=4, validation_split=0.2, verbose=1)
 
-        mean_cantidad_real = X_req[:, 1].mean()
-        if mean_cantidad_real == 0:
-           print(f"ADVERTENCIA: cantidad_objeto_real media es 0 para parametro_estimacionid {param_id}. Usando factor_ia predeterminado.")
-           factor_ia_new = 1  # O algún otro valor predeterminado
-        else:
-            # Obtener predicciones correspondientes al parámetro de estimación actual
-            indices = df[df["parametro_estimacionid"] == param_id].index
-            predictions_param = predictions[indices]
-            factor_ia_new = predictions_param.mean() / mean_cantidad_real  # Ajustar según lógica específica
-            print(f"Nuevo factor_ia calculado para parametro_estimacionid {param_id}: {factor_ia_new}")
-        factor_ia_updates.append({"parametro_estimacionid": param_id, "factor_ia": factor_ia_new})
-
-    # Actualizar todos los factores en la base de datos al final
+    predictions = model.predict(X).flatten()
     supabase = get_supabase_client()
-    for update in factor_ia_updates:
-        try:
-            supabase.table("parametro_estimacion").update(
-                {"factor_ia": update["factor_ia"]}
-            ).eq("parametro_estimacionid", update["parametro_estimacionid"]).execute()
-            print(f"Actualizado factor_ia en la base de datos para parametro_estimacionid {update['parametro_estimacionid']}.")
-        except Exception as e:
-            print(f"Error al actualizar la base de datos para parametro_estimacionid {update['parametro_estimacionid']}: {e}")
 
-    print("\nEntrenamiento completado para todos los requerimientos.")
+    # Supongamos que deseas actualizar el factor_ia en la tabla elemento_afectado
+    # Necesitas obtener el elemento_afectadoid correspondiente al tipo_elemento_afectado_id
+    for tipo_elemento_afectado_id in df["tipo_elemento_afectado_id"].unique():  # Usar tipo_elemento_afectado_id
+        df_elemento = df[df["tipo_elemento_afectado_id"] == tipo_elemento_afectado_id] # Filtrar por tipo_elemento_afectado_id
+        indices = df_elemento.index
+        esfuerzo_estimado = predictions[indices]
+        esfuerzo_real = df_elemento["jornada_real"].values
+
+        # Verifica si hay NaN en esfuerzo_estimado o esfuerzo_real
+        if np.isnan(esfuerzo_estimado).any() or np.isnan(esfuerzo_real).any():
+            print(f"Advertencia: NaN encontrado en esfuerzo_estimado o esfuerzo_real para tipo_elemento_afectado_id {tipo_elemento_afectado_id}.  Omitiendo actualización.")
+            continue  # Salta a la siguiente iteración del bucle
+
+        mean_esfuerzo_real = np.mean(esfuerzo_real)
+
+        if mean_esfuerzo_real == 0:
+            factor_ia_new = 1
+        else:
+            factor_ia_new = np.mean(esfuerzo_estimado) / mean_esfuerzo_real
+
+        factor_ia_new = max(factor_ia_new, 0)
+
+        if factor_ia_new > 10:
+            factor_ia_new = 10
+
+         # Verifica si factor_ia_new es NaN después de los cálculos
+        if np.isnan(factor_ia_new):
+            print(f"Advertencia: factor_ia_new es NaN para tipo_elemento_afectado_id {tipo_elemento_afectado_id}.  Omitiendo actualización.")
+            continue #Salto a la siguiente iteración del ciclo
+
+
+        # Ahora busca el elemento_afectado asociado con este tipo_elemento_afectado_id
+        response = supabase.from_("elemento_afectado").select("elemento_afectadoid").eq("tipo_elemento_afectadoid", tipo_elemento_afectado_id).limit(1).execute()
+        elemento_afectado_data = response.data
+
+        if elemento_afectado_data:
+            elemento_afectadoid = elemento_afectado_data[0].get("elemento_afectadoid")
+
+            supabase.table("elemento_afectado").update(
+                {"factor_ia": factor_ia_new}
+            ).eq("elemento_afectadoid", elemento_afectadoid).execute()
+
+            print(f"Factor_ia (Elemento) actualizado para elemento_afectadoid {elemento_afectadoid}: {factor_ia_new}")
+        else:
+            print(f"No se encontró elemento_afectado para tipo_elemento_afectado_id {tipo_elemento_afectado_id}")
+
+
+# ------------------------------------------------------------------------------
+# Función principal
+# ------------------------------------------------------------------------------
+
+def train_and_adjust_factors():
+    train_and_adjust_factors_parametro()
+    train_and_adjust_factors_elemento()
 
 if __name__ == '__main__':
-    train_for_all_requirements()
+    train_and_adjust_factors()

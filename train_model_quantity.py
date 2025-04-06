@@ -5,55 +5,84 @@ from tensorflow.keras import layers, regularizers
 from supabase_client import get_supabase_client
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
 import joblib
 from tabulate import tabulate
 
-# Nombre del archivo para guardar el modelo y el StandardScaler
 MODEL_FILE = "effort_model.keras"
 SCALER_FILE = "effort_scaler.joblib"
-COLUMNS_FILE = "effort_columns.joblib"  # Nuevo archivo para guardar los nombres de las columnas
+COLUMNS_FILE = "effort_columns.joblib"
+
 
 def fetch_data():
     supabase = get_supabase_client()
 
-    tipo_elementos = supabase.from_("tipo_elemento_afectado").select("tipo_elemento_afectadoid, nombre, activo, fase_proyectoid").execute().data
+    response_pf = supabase.from_("punto_funcion").select(
+        "punto_funcionid, cantidad_estimada, cantidad_real, requerimientoid, tipo_elemento_afectado_id, parametro_estimacionid"
+    ).execute()
+    df_pf = pd.DataFrame(response_pf.data)
 
-    response = supabase.from_("punto_funcion").select(
-        "punto_funcionid, cantidad_estimada, cantidad_real, \
-        requerimientoid, tipo_elemento_afectado_id"
-    ).not_.is_("tipo_elemento_afectado_id", None).execute()
+    response_param = supabase.from_("parametro_estimacion").select(
+        "parametro_estimacionid, tipo_parametro_estimacionid"
+    ).execute()
+    df_param = pd.DataFrame(response_param.data)
 
-    data = response.data
-    df = pd.DataFrame(data)
+    df = df_pf.merge(df_param, how='left', on='parametro_estimacionid')
 
-    return df, tipo_elementos
+    if df.empty:
+        print("No se recibieron datos para entrenar el modelo. Saliendo...")
+        return None
 
-def preprocess_data(df, num_tipos_elemento):
+    return df
 
-    # Eliminar filas con valores NaN en la columna 'cantidad_real'
-    df = df.dropna(subset=['cantidad_real'])
 
-    df['tipo_elemento_afectado_id'] = pd.to_numeric(df['tipo_elemento_afectado_id'], errors='coerce').fillna(0).astype(int)
+def preprocess_data(df):
+    df = df.dropna(subset=['cantidad_estimada', 'cantidad_real'])
 
-    # One-Hot Encoding para tipo_elemento_afectado_id
-    one_hot = pd.get_dummies(df['tipo_elemento_afectado_id'], prefix='tipo')
+    # Separar los registros de parámetros y elementos afectados
+    df_param = df[df['tipo_parametro_estimacionid'].notnull()].copy()
+    df_elem = df[df['tipo_elemento_afectado_id'].notnull()].copy()
 
-    # Agregar columnas one-hot al dataframe original
-    df = pd.concat([df, one_hot], axis=1)
+    # Pivotear los elementos afectados para que cada tipo sea una columna
+    df_elem_pivot = df_elem.pivot_table(
+        index='requerimientoid',
+        columns='tipo_elemento_afectado_id',
+        values='cantidad_estimada',
+        aggfunc='sum',
+        fill_value=0
+    )
+    df_elem_pivot.columns = [f'elem_afectado_{int(col)}' for col in df_elem_pivot.columns]
 
-    # Seleccionar las características para el modelo
-    feature_columns = ['cantidad_estimada'] + [col for col in df.columns if col.startswith('tipo_')]
-    X = df[feature_columns].fillna(0)  # Usar el DataFrame directamente
+    # One-hot encoding de los parámetros de estimación
+    df_param['cantidad_estimada'] = df_param['cantidad_estimada'].fillna(0)
+    df_param['tipo_parametro_estimacionid'] = df_param['tipo_parametro_estimacionid'].astype(str)
+    df_param['param_type_value'] = df_param['tipo_parametro_estimacionid'] + '_' + df_param['cantidad_estimada'].astype(int).astype(str)
 
-    # Dividir en conjuntos de entrenamiento y prueba (antes de escalar)
-    X_train, X_test, y_train, y_test = train_test_split(X, df["cantidad_real"].fillna(0), test_size=0.2, random_state=42)
+    df_param['dummy'] = 1
+    df_param_pivot = df_param.pivot_table(
+        index='requerimientoid',
+        columns='param_type_value',
+        values='dummy',
+        aggfunc='sum',
+        fill_value=0
+    )
 
-    # Escalar solo las características de entrenamiento y luego aplicar la misma transformación a las de prueba
+    # Calcular cantidad_real total por requerimiento como target
+    df_target = df.groupby('requerimientoid')['cantidad_real'].sum().to_frame(name='cantidad_real_total')
+
+    # Unir todo en un solo dataframe
+    df_final = df_target.join(df_elem_pivot, how='left').join(df_param_pivot, how='left').fillna(0)
+
+    X = df_final.drop(columns=['cantidad_real_total'])
+    y = df_final['cantidad_real_total']
+
     scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
+    X_scaled = scaler.fit_transform(X)
 
-    return X_train, X_test, y_train, y_test, len(feature_columns), scaler, X.columns # Retornar el scaler
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+    return X_train, X_test, y_train, y_test, X.shape[1], scaler, X.columns
+
 
 def create_model(input_shape):
     model = tf.keras.Sequential([
@@ -64,26 +93,21 @@ def create_model(input_shape):
         layers.Dropout(0.3),
         layers.Dense(32, activation='relu', kernel_regularizer=regularizers.l2(1e-5)),
         layers.Dropout(0.3),
-        layers.Dense(1, activation='relu') # ReLU para predicciones no negativas
+        layers.Dense(1, activation='relu')
     ])
     model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae'])
     return model
 
 
 def train_and_save_model():
-    df, tipo_elementos = fetch_data()
-    num_tipos_elemento = len(tipo_elementos)
+    df = fetch_data()
+    if df is None:
+        return None
 
-    if df.empty:
-        print("No se recibieron datos para entrenar el modelo. Saliendo...")
-        return
+    print("DataFrame original:")
+    print(tabulate(df, headers='keys', tablefmt='fancy_grid', numalign='center', stralign='center'))
 
-    # Imprimir el DataFrame original al inicio
-    print("DataFrame original (antes del preprocesamiento):")
-    print(tabulate(df, headers='keys', tablefmt='fancy_grid', numalign='center', stralign='center')) # Usar fancy_grid para una tabla bonita
-
-    # Preprocesar y dividir los datos
-    X_train, X_test, y_train, y_test, input_shape, scaler, train_columns = preprocess_data(df, num_tipos_elemento)
+    X_train, X_test, y_train, y_test, input_shape, scaler, train_columns = preprocess_data(df)
 
     model = create_model(input_shape)
     print(f"Input shape del modelo: {input_shape}")
@@ -92,92 +116,21 @@ def train_and_save_model():
         model.fit(X_train, y_train, epochs=100, batch_size=4, validation_split=0.2, verbose=1)
     except Exception as e:
         print(f"Error durante el entrenamiento: {e}")
-        return
-
-    # Guardar el modelo
-    model.save(MODEL_FILE)
-    print(f"Modelo guardado en {MODEL_FILE}")
-
-    # Guardar el StandardScaler
-    joblib.dump(scaler, SCALER_FILE)
-    print(f"StandardScaler guardado en {SCALER_FILE}")
-
-    # Guardar los nombres de las columnas de entrenamiento
-    joblib.dump(train_columns, COLUMNS_FILE)
-    print(f"Columnas de entrenamiento guardadas en {COLUMNS_FILE}")
-
-    return df, tipo_elementos
-
-def load_model_and_predict(df, data):
-    try:
-        model = tf.keras.models.load_model(MODEL_FILE)
-        scaler = joblib.load(SCALER_FILE)
-        train_columns = joblib.load(COLUMNS_FILE) # Cargar los nombres de las columnas
-    except Exception as e:
-        print(f"Error al cargar el modelo, el StandardScaler o las columnas: {e}")
         return None
 
-    # Crear DataFrame a partir de los datos de entrada
-    input_df = pd.DataFrame([data])
+    model.save(MODEL_FILE)
+    joblib.dump(scaler, SCALER_FILE)
+    joblib.dump(train_columns, COLUMNS_FILE)
 
-    # One-Hot Encode la entrada
-    one_hot = pd.get_dummies(input_df['tipo_elemento_afectado_id'], prefix='tipo')
-    input_df = pd.concat([input_df, one_hot], axis=1)
+    print("Modelo, scaler y columnas guardados correctamente.")
+    return df
 
-    # Reindexar el input_df para que tenga las mismas columnas que el conjunto de entrenamiento
-    input_df = input_df.reindex(columns=train_columns, fill_value=0)
-
-    # Asegurarse de que 'cantidad_estimada' esté presente (por si acaso)
-    if 'cantidad_estimada' not in input_df.columns:
-        input_df['cantidad_estimada'] = 0  # o algún valor predeterminado
-
-    # Mover 'cantidad_estimada' al principio del dataframe
-    columns = ['cantidad_estimada'] + [col for col in input_df.columns if col != 'cantidad_estimada']
-    input_df = input_df[columns]
-
-
-    # Seleccionar las características (en el mismo orden que en el entrenamiento)
-    X = input_df.values
-
-
-    # Escalar la entrada
-    X_scaled = scaler.transform(X)
-
-    prediction = model.predict(X_scaled).flatten()
-    prediction = np.round(prediction).astype(int)
-
-    return prediction[0], input_df
 
 def main():
-  # Entrenar y guardar el modelo
-  df, tipo_elementos = train_and_save_model()
+    df = train_and_save_model()
+    if df is None:
+        return
 
-  # Definir algunos datos de entrada para la predicción
-  input_data_list = [
-      {'cantidad_estimada': 2, 'tipo_elemento_afectado_id': 3},
-      {'cantidad_estimada': 1, 'tipo_elemento_afectado_id': 7},
-      {'cantidad_estimada': 3, 'tipo_elemento_afectado_id': 1},
-      {'cantidad_estimada': 5, 'tipo_elemento_afectado_id': 9},
-      {'cantidad_estimada': 2, 'tipo_elemento_afectado_id': 12}
-  ]
-
-  # Crear una lista para almacenar los resultados de las predicciones
-  results = []
-
-  # Realizar predicciones para cada conjunto de datos de entrada
-  for input_data in input_data_list:
-      prediction, input_df = load_model_and_predict(df, input_data)
-      if prediction is not None:
-          results.append([input_data['cantidad_estimada'], input_data['tipo_elemento_afectado_id'], prediction])
-      else:
-          print(f"No se pudo realizar la predicción para la entrada: {input_data}")
-
-  # Crear un DataFrame a partir de los resultados
-  results_df = pd.DataFrame(results, columns=['cantidad_estimada', 'tipo_elemento_afectado_id', 'Predicción'])
-
-  # Imprimir el DataFrame en formato de tabla en la consola
-  print("Predicciones:")
-  print(tabulate(results_df, headers='keys', tablefmt='fancy_grid', numalign='center', stralign='center'))
 
 if __name__ == '__main__':
     main()

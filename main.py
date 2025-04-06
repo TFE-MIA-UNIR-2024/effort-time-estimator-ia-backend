@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 import traceback
@@ -7,13 +8,22 @@ import numpy as np
 import joblib
 import tensorflow as tf
 
-from train_model_complete import train_and_adjust_factors  # Invoca el modelo completo por puntos de función
+from train_model_complete import train_and_adjust_factors
 
 MODEL_FILE = "effort_model.keras"
 SCALER_FILE = "effort_scaler.joblib"
 COLUMNS_FILE = "effort_columns.joblib"
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 model = None
 scaler = None
 train_columns = None
@@ -49,12 +59,10 @@ def predict(request: PredictionRequest):
         for tipo_id in request.tipo_elemento_afectado_ids:
             input_data = {col: 0 for col in train_columns}
 
-            # Marcar ese tipo de elemento afectado
             col_name = f"elem_afectado_{tipo_id}"
             if col_name in input_data:
                 input_data[col_name] = 1
 
-            # Agregar los parámetros como one-hot
             for param_id in request.parametro_estimacion_ids:
                 for col in train_columns:
                     if col.startswith(f"{param_id}_"):
@@ -82,9 +90,6 @@ def predict(request: PredictionRequest):
 
 @app.post("/train")
 def api_train():
-    """
-    Reentrena el modelo completo y guarda localmente.
-    """
     try:
         import io
         import sys

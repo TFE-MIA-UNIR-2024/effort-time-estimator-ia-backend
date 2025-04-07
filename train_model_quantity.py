@@ -134,3 +134,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+def train_quantity_model():
+    return train_and_save_model()

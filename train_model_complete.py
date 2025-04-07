@@ -36,6 +36,7 @@ def fetch_historical_data_parametro():
                 'punto_funcionid': row.get('punto_funcionid'),  # Agregado punto_funcionid
                 'jornada_real': row.get('jornada_real'),
                 'jornada_estimada': row.get('jornada_estimada'),
+                # No convertir aquí, dejar como está
                 'parametro_estimacionid': row.get('parametro_estimacionid'),
                 'factor_parametro': parametro_estimacion_data.get('factor') if parametro_estimacion_data else None,
                 'factor_ia_parametro': parametro_estimacion_data.get('factor_ia') if parametro_estimacion_data else None,
@@ -57,6 +58,9 @@ def fetch_historical_data_parametro():
     # Imputa los valores faltantes (NaN) con 0
     df["factor_parametro"] = df["factor_parametro"].fillna(0)
     df["factor_ia_parametro"] = df["factor_ia_parametro"].fillna(0)
+
+    # Forzar que parametro_estimacionid sea entero o NaN
+    df["parametro_estimacionid"] = pd.to_numeric(df["parametro_estimacionid"], errors='coerce', downcast='integer')
 
     return df
 
@@ -96,6 +100,11 @@ def train_and_adjust_factors_parametro():
     supabase = get_supabase_client()
 
     for param_id in df["parametro_estimacionid"].unique():
+        # Verificar si param_id es NaN o no es un entero válido
+        if pd.isna(param_id) or not isinstance(param_id, (int, np.integer)):
+            print(f"Advertencia: parametro_estimacionid inválido ({param_id}). Omitiendo actualización.")
+            continue
+
         df_param = df[df["parametro_estimacionid"] == param_id]
         indices = df_param.index
         esfuerzo_estimado = predictions[indices]
@@ -103,8 +112,8 @@ def train_and_adjust_factors_parametro():
 
         # Verifica si hay NaN en esfuerzo_estimado o esfuerzo_real
         if np.isnan(esfuerzo_estimado).any() or np.isnan(esfuerzo_real).any():
-            print(f"Advertencia: NaN encontrado en esfuerzo_estimado o esfuerzo_real para parametro_estimacionid {param_id}.  Omitiendo actualización.")
-            continue  # Salta a la siguiente iteración del bucle
+            print(f"Advertencia: NaN encontrado en esfuerzo_estimado o esfuerzo_real para parametro_estimacionid {param_id}. Omitiendo actualización.")
+            continue
 
         mean_esfuerzo_real = np.mean(esfuerzo_real)
 
@@ -120,12 +129,12 @@ def train_and_adjust_factors_parametro():
 
         # Verifica si factor_ia_new es NaN después de los cálculos
         if np.isnan(factor_ia_new):
-            print(f"Advertencia: factor_ia_new es NaN para parametro_estimacionid {param_id}.  Omitiendo actualización.")
-            continue #Salto a la siguiente iteración del ciclo
+            print(f"Advertencia: factor_ia_new es NaN para parametro_estimacionid {param_id}. Omitiendo actualización.")
+            continue
 
         supabase.table("parametro_estimacion").update(
             {"factor_ia": factor_ia_new}
-        ).eq("parametro_estimacionid", param_id).execute()
+        ).eq("parametro_estimacionid", int(param_id)).execute()  # Asegurar que param_id sea entero
 
         print(f"Factor_ia (Parametro) actualizado para parametro_estimacionid {param_id}: {factor_ia_new}")
 

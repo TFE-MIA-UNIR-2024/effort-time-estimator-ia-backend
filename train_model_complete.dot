@@ -1,0 +1,103 @@
+digraph RNA_Dual {
+    rankdir=LR;
+    fontname="Arial";
+    node [fontname="Arial", fontsize=12];
+
+    // ===================
+    // Notas de preprocesamiento
+    // ===================
+    nota1 [label="Conversión numérica\ny manejo de NaN", shape=box, style=filled, fillcolor="#0492C2", fontcolor=white];
+    nota2 [label="Agrupamiento y\nformateo de datos", shape=box, style=filled, fillcolor="#0492C2", fontcolor=white];
+
+    // ===================
+    // Modelo Parámetro
+    // ===================
+    subgraph cluster_parametro {
+        label="Modelo de Parámetro de Estimación";
+        style=filled;
+        color="#E6F4F9";
+        fontcolor="#1E3A5F";
+        fontsize=14;
+
+        // Entrada
+        subgraph cluster_p_input {
+            label="Capa de entrada";
+            style=filled;
+            color="#0492C2";
+            fontcolor=white;
+
+            p_input [label="Entradas:\n[jornada_real,\njornada_estimada,\nfactor_parametro,\nfactor_ia_parametro]", shape=box, style=filled, fillcolor=white];
+        }
+
+        // Capas ocultas
+        subgraph cluster_p_hidden {
+            label="Capas ocultas";
+            style=filled;
+            color="#01465C";
+            fontcolor=white;
+
+            p_h1 [label="Capa oculta 1\n64 neuronas\nReLU + L2\nDropout 0.2", shape=ellipse, style=filled, fillcolor=white];
+            p_h2 [label="Capa oculta 2\n32 neuronas\nReLU + L2\nDropout 0.2", shape=ellipse, style=filled, fillcolor=white];
+        }
+
+        // Salida
+        subgraph cluster_p_output {
+            label="Capa de salida";
+            style=filled;
+            color="#A1A1A1";
+            fontcolor=white;
+
+            p_out [label="1 neurona\nLinear\nAdam + Error Relativo", shape=ellipse, style=filled, fillcolor=white];
+        }
+
+        p_input -> p_h1 -> p_h2 -> p_out;
+    }
+
+    // ===================
+    // Modelo Elemento
+    // ===================
+    subgraph cluster_elemento {
+        label="Modelo de Tipo de Elemento Afectado";
+        style=filled;
+        color="#E6F4F9";
+        fontcolor="#1E3A5F";
+        fontsize=14;
+
+        // Entrada
+        subgraph cluster_e_input {
+            label="Capa de entrada";
+            style=filled;
+            color="#0492C2";
+            fontcolor=white;
+
+            e_input [label="Entradas:\n[jornada_real,\njornada_estimada,\nfactor_elemento,\nfactor_ia_elemento]", shape=box, style=filled, fillcolor=white];
+        }
+
+        // Capas ocultas
+        subgraph cluster_e_hidden {
+            label="Capas ocultas";
+            style=filled;
+            color="#01465C";
+            fontcolor=white;
+
+            e_h1 [label="Capa oculta 1\n64 neuronas\nReLU + L2\nDropout 0.2", shape=ellipse, style=filled, fillcolor=white];
+            e_h2 [label="Capa oculta 2\n32 neuronas\nReLU + L2\nDropout 0.2", shape=ellipse, style=filled, fillcolor=white];
+        }
+
+        // Salida
+        subgraph cluster_e_output {
+            label="Capa de salida";
+            style=filled;
+            color="#A1A1A1";
+            fontcolor=white;
+
+            e_out [label="1 neurona\nLinear\nAdam + Error Relativo", shape=ellipse, style=filled, fillcolor=white];
+        }
+
+        e_input -> e_h1 -> e_h2 -> e_out;
+    }
+
+    // Enlaces desde notas
+    nota1 -> p_input;
+    nota2 -> e_input;
+}

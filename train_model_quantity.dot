@@ -1,0 +1,65 @@
+digraph RNA {
+    rankdir=LR;
+    fontsize=14;
+    fontname="Arial";
+
+    node [shape=box, style=filled, fontname="Arial", fontsize=14, color="#1E3A5F", fontcolor=white];
+
+    onehot [label="One-Hot Encoding", fillcolor="#0492C2"];
+    scaler [label="StandardScaler", fillcolor="#0492C2"];
+
+    subgraph cluster_input {
+        label="Capa de entrada";
+        fontsize=16;
+        fontcolor="#1E3A5F";
+        color="#0492C2"; // turquesa
+        style=filled;
+        fillcolor="#0492C2";
+
+        param [label="Parámetros de estimación\n(tipo + valor)", shape=ellipse, fillcolor=white, fontcolor="#1E3A5F"];
+        elem [label="Tipos de elementos\n(cantidad estimada)", shape=ellipse, fillcolor=white, fontcolor="#1E3A5F"];
+        merge [label="Entrada combinada", shape=ellipse, fillcolor=white, fontcolor="#1E3A5F"];
+    }
+
+    subgraph cluster_hidden {
+        label="Capas ocultas";
+        fontsize=16;
+        fontcolor="#FFFFFF";
+        color="#004D61"; // azul oscuro
+        style=filled;
+        fillcolor="#004D61";
+
+        hidden1 [label="Capa oculta 1\n128 neuronas\nReLU + L2", shape=ellipse, fillcolor=white, fontcolor="#1E3A5F"];
+        hidden2 [label="Capa oculta 2\n64 neuronas\nReLU + L2", shape=ellipse, fillcolor=white, fontcolor="#1E3A5F"];
+        hidden3 [label="Capa oculta 3\n32 neuronas\nReLU + L2", shape=ellipse, fillcolor=white, fontcolor="#1E3A5F"];
+    }
+
+    subgraph cluster_output {
+        label="Capa de salida";
+        fontsize=16;
+        fontcolor="#1E3A5F";
+        color="#A6A6A6"; // gris
+        style=filled;
+        fillcolor="#A6A6A6";
+
+        output [label="1 neurona\nReLU\nAdam + MSE + MAE", shape=ellipse, fillcolor=white, fontcolor="#1E3A5F"];
+    }
+
+    dropout [label="Dropout (0.3)", shape=box, fillcolor="#0492C2"];
+
+    // Relaciones
+    onehot -> param;
+    scaler -> elem;
+    param -> merge;
+    elem -> merge;
+
+    merge -> hidden1;
+    merge -> hidden2;
+    merge -> hidden3;
+
+    dropout -> hidden1;
+
+    hidden1 -> output;
+    hidden2 -> output;
+    hidden3 -> output;
+}

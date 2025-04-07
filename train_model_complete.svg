@@ -1,0 +1,181 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="877pt" height="380pt" viewBox="0.00 0.00 876.84 380">
+<g id="graph0" class="graph" transform="translate(9.602654845927987,319.8212729380898) scale(0.8705505632961245)" data-name="RNA_Dual">
+
+<polygon fill="white" stroke="none" points="-4,4 -4,-376 872.84,-376 872.84,4 -4,4"/>
+<g id="clust1" class="cluster" data-name="cluster_parametro">
+
+<polygon fill="#e6f4f9" stroke="#e6f4f9" points="149.37,-8 149.37,-182 860.84,-182 860.84,-8 149.37,-8"/>
+<text text-anchor="middle" x="505.11" y="-165.4" font-family="Arial" font-size="14.00" fill="#1e3a5f">Modelo de Parámetro de Estimación</text>
+</g>
+<g id="clust2" class="cluster" data-name="cluster_p_input">
+
+<polygon fill="#0492c2" stroke="#0492c2" points="157.37,-22 157.37,-143 300.1,-143 300.1,-22 157.37,-22"/>
+<text text-anchor="middle" x="228.74" y="-126.4" font-family="Arial" font-size="14.00" fill="white">Capa de entrada</text>
+</g>
+<g id="clust3" class="cluster" data-name="cluster_p_hidden">
+
+<polygon fill="#01465c" stroke="#01465c" points="320.1,-16 320.1,-149 626.8,-149 626.8,-16 320.1,-16"/>
+<text text-anchor="middle" x="473.45" y="-132.4" font-family="Arial" font-size="14.00" fill="white">Capas ocultas</text>
+</g>
+<g id="clust4" class="cluster" data-name="cluster_p_output">
+
+<polygon fill="#a1a1a1" stroke="#a1a1a1" points="646.8,-26 646.8,-139 852.84,-139 852.84,-26 646.8,-26"/>
+<text text-anchor="middle" x="749.82" y="-122.4" font-family="Arial" font-size="14.00" fill="white">Capa de salida</text>
+</g>
+<g id="clust5" class="cluster" data-name="cluster_elemento">
+
+<polygon fill="#e6f4f9" stroke="#e6f4f9" points="152.04,-190 152.04,-364 860.84,-364 860.84,-190 152.04,-190"/>
+<text text-anchor="middle" x="506.44" y="-347.4" font-family="Arial" font-size="14.00" fill="#1e3a5f">Modelo de Tipo de Elemento Afectado</text>
+</g>
+<g id="clust6" class="cluster" data-name="cluster_e_input">
+
+<polygon fill="#0492c2" stroke="#0492c2" points="160.04,-204 160.04,-325 297.43,-325 297.43,-204 160.04,-204"/>
+<text text-anchor="middle" x="228.74" y="-308.4" font-family="Arial" font-size="14.00" fill="white">Capa de entrada</text>
+</g>
+<g id="clust7" class="cluster" data-name="cluster_e_hidden">
+
+<polygon fill="#01465c" stroke="#01465c" points="320.1,-198 320.1,-331 626.8,-331 626.8,-198 320.1,-198"/>
+<text text-anchor="middle" x="473.45" y="-314.4" font-family="Arial" font-size="14.00" fill="white">Capas ocultas</text>
+</g>
+<g id="clust8" class="cluster" data-name="cluster_e_output">
+
+<polygon fill="#a1a1a1" stroke="#a1a1a1" points="646.8,-208 646.8,-321 852.84,-321 852.84,-208 646.8,-208"/>
+<text text-anchor="middle" x="749.82" y="-304.4" font-family="Arial" font-size="14.00" fill="white">Capa de salida</text>
+</g>
+<!-- nota1 -->
+<g id="node1" class="node" pointer-events="visible" data-name="nota1">
+
+<polygon fill="#0492c2" stroke="black" points="129.56,-88.3 -0.19,-88.3 -0.19,-51.7 129.56,-51.7 129.56,-88.3"/>
+<text text-anchor="middle" x="64.69" y="-73.6" font-family="Arial" font-size="12.00" fill="white">Conversión numérica</text>
+<text text-anchor="middle" x="64.69" y="-59.2" font-family="Arial" font-size="12.00" fill="white">y manejo de NaN</text>
+</g>
+<!-- p_input -->
+<g id="node3" class="node" pointer-events="visible" data-name="p_input">
+
+<polygon fill="white" stroke="black" points="291.96,-110 165.51,-110 165.51,-30 291.96,-30 291.96,-110"/>
+<text text-anchor="middle" x="228.74" y="-95.2" font-family="Arial" font-size="12.00">Entradas:</text>
+<text text-anchor="middle" x="228.74" y="-80.8" font-family="Arial" font-size="12.00">[jornada_real,</text>
+<text text-anchor="middle" x="228.74" y="-66.4" font-family="Arial" font-size="12.00">jornada_estimada,</text>
+<text text-anchor="middle" x="228.74" y="-52" font-family="Arial" font-size="12.00">factor_parametro,</text>
+<text text-anchor="middle" x="228.74" y="-37.6" font-family="Arial" font-size="12.00">factor_ia_parametro]</text>
+</g>
+<!-- nota1&#45;&gt;p_input -->
+<g id="edge7" class="edge" data-name="nota1-&gt;p_input">
+
+<path fill="none" stroke="black" d="M129.73,-70C137.67,-70 145.83,-70 153.9,-70"/>
+<polygon fill="black" stroke="black" points="153.7,-73.5 163.7,-70 153.7,-66.5 153.7,-73.5"/>
+</g>
+<!-- nota2 -->
+<g id="node2" class="node" pointer-events="visible" data-name="nota2">
+
+<polygon fill="#0492c2" stroke="black" points="120.91,-270.3 8.46,-270.3 8.46,-233.7 120.91,-233.7 120.91,-270.3"/>
+<text text-anchor="middle" x="64.69" y="-255.6" font-family="Arial" font-size="12.00" fill="white">Agrupamiento y</text>
+<text text-anchor="middle" x="64.69" y="-241.2" font-family="Arial" font-size="12.00" fill="white">formateo de datos</text>
+</g>
+<!-- e_input -->
+<g id="node7" class="node" pointer-events="visible" data-name="e_input">
+
+<polygon fill="white" stroke="black" points="289.63,-292 167.84,-292 167.84,-212 289.63,-212 289.63,-292"/>
+<text text-anchor="middle" x="228.74" y="-277.2" font-family="Arial" font-size="12.00">Entradas:</text>
+<text text-anchor="middle" x="228.74" y="-262.8" font-family="Arial" font-size="12.00">[jornada_real,</text>
+<text text-anchor="middle" x="228.74" y="-248.4" font-family="Arial" font-size="12.00">jornada_estimada,</text>
+<text text-anchor="middle" x="228.74" y="-234" font-family="Arial" font-size="12.00">factor_elemento,</text>
+<text text-anchor="middle" x="228.74" y="-219.6" font-family="Arial" font-size="12.00">factor_ia_elemento]</text>
+</g>
+<!-- nota2&#45;&gt;e_input -->
+<g id="edge8" class="edge" data-name="nota2-&gt;e_input">
+
+<path fill="none" stroke="black" d="M121,-252C132.33,-252 144.4,-252 156.2,-252"/>
+<polygon fill="black" stroke="black" points="155.89,-255.5 165.89,-252 155.89,-248.5 155.89,-255.5"/>
+</g>
+<!-- p_h1 -->
+<g id="node4" class="node" pointer-events="visible" data-name="p_h1">
+
+<ellipse fill="white" stroke="black" cx="391.77" cy="-70" rx="63.85" ry="46.27"/>
+<text text-anchor="middle" x="391.77" y="-88" font-family="Arial" font-size="12.00">Capa oculta 1</text>
+<text text-anchor="middle" x="391.77" y="-73.6" font-family="Arial" font-size="12.00">64 neuronas</text>
+<text text-anchor="middle" x="391.77" y="-59.2" font-family="Arial" font-size="12.00">ReLU + L2</text>
+<text text-anchor="middle" x="391.77" y="-44.8" font-family="Arial" font-size="12.00">Dropout 0.2</text>
+</g>
+<!-- p_input&#45;&gt;p_h1 -->
+<g id="edge1" class="edge" data-name="p_input-&gt;p_h1">
+
+<path fill="none" stroke="black" d="M292.46,-70C300.17,-70 308.11,-70 315.98,-70"/>
+<polygon fill="black" stroke="black" points="315.91,-73.5 325.91,-70 315.91,-66.5 315.91,-73.5"/>
+</g>
+<!-- p_h2 -->
+<g id="node5" class="node" pointer-events="visible" data-name="p_h2">
+
+<ellipse fill="white" stroke="black" cx="555.12" cy="-70" rx="63.85" ry="46.27"/>
+<text text-anchor="middle" x="555.12" y="-88" font-family="Arial" font-size="12.00">Capa oculta 2</text>
+<text text-anchor="middle" x="555.12" y="-73.6" font-family="Arial" font-size="12.00">32 neuronas</text>
+<text text-anchor="middle" x="555.12" y="-59.2" font-family="Arial" font-size="12.00">ReLU + L2</text>
+<text text-anchor="middle" x="555.12" y="-44.8" font-family="Arial" font-size="12.00">Dropout 0.2</text>
+</g>
+<!-- p_h1&#45;&gt;p_h2 -->
+<g id="edge2" class="edge" data-name="p_h1-&gt;p_h2">
+
+<path fill="none" stroke="black" d="M456.08,-70C463.79,-70 471.73,-70 479.58,-70"/>
+<polygon fill="black" stroke="black" points="479.49,-73.5 489.49,-70 479.49,-66.5 479.49,-73.5"/>
+</g>
+<!-- p_out -->
+<g id="node6" class="node" pointer-events="visible" data-name="p_out">
+
+<ellipse fill="white" stroke="black" cx="749.82" cy="-70" rx="95.04" ry="36.41"/>
+<text text-anchor="middle" x="749.82" y="-80.8" font-family="Arial" font-size="12.00">1 neurona</text>
+<text text-anchor="middle" x="749.82" y="-66.4" font-family="Arial" font-size="12.00">Linear</text>
+<text text-anchor="middle" x="749.82" y="-52" font-family="Arial" font-size="12.00">Adam + Error Relativo</text>
+</g>
+<!-- p_h2&#45;&gt;p_out -->
+<g id="edge3" class="edge" data-name="p_h2-&gt;p_out">
+
+<path fill="none" stroke="black" d="M619.22,-70C626.9,-70 634.91,-70 643.01,-70"/>
+<polygon fill="black" stroke="black" points="642.97,-73.5 652.97,-70 642.97,-66.5 642.97,-73.5"/>
+</g>
+<!-- e_h1 -->
+<g id="node8" class="node" pointer-events="visible" data-name="e_h1">
+
+<ellipse fill="white" stroke="black" cx="391.77" cy="-252" rx="63.85" ry="46.27"/>
+<text text-anchor="middle" x="391.77" y="-270" font-family="Arial" font-size="12.00">Capa oculta 1</text>
+<text text-anchor="middle" x="391.77" y="-255.6" font-family="Arial" font-size="12.00">64 neuronas</text>
+<text text-anchor="middle" x="391.77" y="-241.2" font-family="Arial" font-size="12.00">ReLU + L2</text>
+<text text-anchor="middle" x="391.77" y="-226.8" font-family="Arial" font-size="12.00">Dropout 0.2</text>
+</g>
+<!-- e_input&#45;&gt;e_h1 -->
+<g id="edge4" class="edge" data-name="e_input-&gt;e_h1">
+
+<path fill="none" stroke="black" d="M289.7,-252C298.28,-252 307.19,-252 316.02,-252"/>
+<polygon fill="black" stroke="black" points="316.01,-255.5 326.01,-252 316.01,-248.5 316.01,-255.5"/>
+</g>
+<!-- e_h2 -->
+<g id="node9" class="node" pointer-events="visible" data-name="e_h2">
+
+<ellipse fill="white" stroke="black" cx="555.12" cy="-252" rx="63.85" ry="46.27"/>
+<text text-anchor="middle" x="555.12" y="-270" font-family="Arial" font-size="12.00">Capa oculta 2</text>
+<text text-anchor="middle" x="555.12" y="-255.6" font-family="Arial" font-size="12.00">32 neuronas</text>
+<text text-anchor="middle" x="555.12" y="-241.2" font-family="Arial" font-size="12.00">ReLU + L2</text>
+<text text-anchor="middle" x="555.12" y="-226.8" font-family="Arial" font-size="12.00">Dropout 0.2</text>
+</g>
+<!-- e_h1&#45;&gt;e_h2 -->
+<g id="edge5" class="edge" data-name="e_h1-&gt;e_h2">
+
+<path fill="none" stroke="black" d="M456.08,-252C463.79,-252 471.73,-252 479.58,-252"/>
+<polygon fill="black" stroke="black" points="479.49,-255.5 489.49,-252 479.49,-248.5 479.49,-255.5"/>
+</g>
+<!-- e_out -->
+<g id="node10" class="node" pointer-events="visible" data-name="e_out">
+
+<ellipse fill="white" stroke="black" cx="749.82" cy="-252" rx="95.04" ry="36.41"/>
+<text text-anchor="middle" x="749.82" y="-262.8" font-family="Arial" font-size="12.00">1 neurona</text>
+<text text-anchor="middle" x="749.82" y="-248.4" font-family="Arial" font-size="12.00">Linear</text>
+<text text-anchor="middle" x="749.82" y="-234" font-family="Arial" font-size="12.00">Adam + Error Relativo</text>
+</g>
+<!-- e_h2&#45;&gt;e_out -->
+<g id="edge6" class="edge" data-name="e_h2-&gt;e_out">
+
+<path fill="none" stroke="black" d="M619.22,-252C626.9,-252 634.91,-252 643.01,-252"/>
+<polygon fill="black" stroke="black" points="642.97,-255.5 652.97,-252 642.97,-248.5 642.97,-255.5"/>
+</g>
+</g>
+</svg>

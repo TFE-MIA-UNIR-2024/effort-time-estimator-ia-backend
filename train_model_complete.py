@@ -105,6 +105,7 @@ def train_and_adjust_factors_parametro():
             print(f"Advertencia: parametro_estimacionid inválido ({param_id}). Omitiendo actualización.")
             continue
 
+        param_id = int(param_id)  # Asegurar que param_id sea un entero
         df_param = df[df["parametro_estimacionid"] == param_id]
         indices = df_param.index
         esfuerzo_estimado = predictions[indices]
@@ -238,6 +239,12 @@ def train_and_adjust_factors_elemento():
     # Supongamos que deseas actualizar el factor_ia en la tabla elemento_afectado
     # Necesitas obtener el elemento_afectadoid correspondiente al tipo_elemento_afectado_id
     for tipo_elemento_afectado_id in df["tipo_elemento_afectado_id"].unique():  # Usar tipo_elemento_afectado_id
+        # Verificar si tipo_elemento_afectado_id es NaN o no es un entero válido
+        if pd.isna(tipo_elemento_afectado_id) or not isinstance(tipo_elemento_afectado_id, (int, np.integer)):
+            print(f"Advertencia: tipo_elemento_afectado_id inválido ({tipo_elemento_afectado_id}). Omitiendo actualización.")
+            continue
+
+        tipo_elemento_afectado_id = int(tipo_elemento_afectado_id)  # Asegurar que tipo_elemento_afectado_id sea un entero
         df_elemento = df[df["tipo_elemento_afectado_id"] == tipo_elemento_afectado_id] # Filtrar por tipo_elemento_afectado_id
         indices = df_elemento.index
         esfuerzo_estimado = predictions[indices]

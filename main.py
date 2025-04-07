@@ -9,6 +9,7 @@ import joblib
 import tensorflow as tf
 
 from train_model_complete import train_and_adjust_factors
+from train_model_quantity import train_quantity_model  # También se entrena el modelo de cantidades
 
 MODEL_FILE = "effort_model.keras"
 SCALER_FILE = "effort_scaler.joblib"
@@ -98,14 +99,20 @@ def api_train():
         sys_stdout = sys.stdout
         sys.stdout = output
 
+        print("Entrenando modelo de factores IA (parámetros y elementos afectados)...")
         train_and_adjust_factors()
 
+        print("Entrenando modelo de estimación de cantidad de elementos por requerimiento...")
+        cantidad_resultado = train_quantity_model()
+
         sys.stdout = sys_stdout
-        output_str = output.getvalue()
+        factores_logs = output.getvalue().splitlines()
 
         return {
-            "message": "Entrenamiento finalizado",
-            "logs": output_str.splitlines()
+            "message": "Entrenamiento finalizado con éxito",
+            "factores_logs": factores_logs,
+            "cantidad_logs": cantidad_resultado.get("logs", []),
+            "cantidad_metrics": cantidad_resultado.get("metrics", {})
         }
     except Exception as e:
         sys.stdout = sys_stdout

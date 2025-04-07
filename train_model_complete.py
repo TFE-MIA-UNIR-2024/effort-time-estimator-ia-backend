@@ -195,6 +195,9 @@ def fetch_historical_data_elemento():
     df["factor_elemento"] = df["factor_elemento"].fillna(0)
     df["factor_ia_elemento"] = df["factor_ia_elemento"].fillna(0)
 
+    # Forzar que tipo_elemento_afectado_id sea entero o NaN
+    df["tipo_elemento_afectado_id"] = pd.to_numeric(df["tipo_elemento_afectado_id"], errors='coerce', downcast='integer')
+
     return df
 
 
